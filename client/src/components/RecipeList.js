@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
 import { fetchRecipes, likeRecipe, unlikeRecipe } from "../api";
 import "./RecipeList.css";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const RecipeList = () => {
   const [recipes, setRecipes] = useState([]);

@@ -194,7 +194,7 @@ app.post("/recipes", upload.single("image"), async (req, res) => {
     }
 
     const imagePath = `/uploads/${req.file.filename}`;
-    const fullImageUrl = `https://flavoshare.onrender.com${imagePath}`;
+    const fullImageUrl = `${process.env.BASE_URL}${imagePath}`;
     console.log("Image path:", fullImageUrl);
 
     // Process instructions to preserve numbered steps
@@ -249,7 +249,7 @@ app.get("/recipes", async (req, res) => {
     const recipesWithLikeStatus = recipes.map(recipe => ({
       ...recipe.toObject(),
       isLiked: userId ? recipe.likedBy.includes(userId) : false,
-      image: recipe.image.startsWith('http') ? recipe.image : `https://flavoshare.onrender.com${recipe.image}`
+      image: recipe.image.startsWith('http') ? recipe.image : `${process.env.BASE_URL}${recipe.image}`
     }));
 
     res.status(200).json(recipesWithLikeStatus);
@@ -356,7 +356,7 @@ app.post(
       const userId = req.userId;
       const { name, age } = req.body;
       const profileImgPath = req.file ? `/uploads/${req.file.filename}` : null;
-      const fullProfileImgUrl = profileImgPath ? `https://flavoshare.onrender.com${profileImgPath}` : null;
+      const fullProfileImgUrl = profileImgPath ? `${process.env.BASE_URL}${profileImgPath}` : null;
 
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found" });

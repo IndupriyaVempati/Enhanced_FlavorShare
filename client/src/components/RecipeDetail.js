@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './RecipeDetail.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+
 const RecipeDetail = () => {
   const { id } = useParams();
   const [recipe, setRecipe] = useState(null);
@@ -12,7 +14,7 @@ const RecipeDetail = () => {
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/recipes/${id}`);
+        const response = await axios.get(`${API_BASE_URL}/recipes/${id}`);
         setRecipe(response.data);
         setLoading(false);
       } catch (err) {
@@ -45,7 +47,7 @@ const RecipeDetail = () => {
         <Link to="/" className="back-button">← Back to Recipes</Link>
         {recipe.image && (
           <img
-            src={`http://localhost:5000${recipe.image}`}
+            src={recipe.image.startsWith('http') ? recipe.image : `${API_BASE_URL}${recipe.image}`}
             alt={recipe.title}
             className="recipe-detail-image"
           />

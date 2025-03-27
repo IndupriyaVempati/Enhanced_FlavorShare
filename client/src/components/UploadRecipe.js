@@ -30,8 +30,9 @@ const UploadRecipe = () => {
     formData.append("image", image);
 
     try {
-      await axios.post("http://localhost:5000/recipes", formData, {
+      await axios.post(`${process.env.REACT_APP_API_URL}/recipes`, formData, {
         headers: {
+          Authorization: token,
           "Content-Type": "multipart/form-data",
         },
       });
