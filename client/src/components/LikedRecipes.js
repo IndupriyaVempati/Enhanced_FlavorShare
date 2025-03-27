@@ -1,178 +1,240 @@
 import React, { useState, useEffect } from "react";
-import { fetchLikedRecipes } from "../api";
+import { fetchLikedRecipes, unlikeRecipe } from "../api";
 import RecipePDF from "./RecipePDF";
 import "./LikedRecipes.css";
 
-// Function to unlike a recipe
-const unlikeRecipe = async (token, recipeId) => {
-  try {
-    const response = await fetch(
-      // `http://localhost:5000/api/unlike-recipe/${recipeId}`,
-      `https://flavorshare.onrender.com/api/unlike-recipe/${recipeId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-      }
-    );
-
-    if (response.ok) {
-      console.log("Recipe unliked successfully");
-      return true;
-    } else {
-      console.error("Failed to unlike the recipe");
-      return false;
-    }
-  } catch (error) {
-    console.error("Error unliking the recipe:", error);
-    return false;
-  }
-};
+const API_BASE_URL = "http://localhost:5000";
 
 const LikedRecipes = () => {
-  const [likedRecipes, setLikedRecipes] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
-  const token = localStorage.getItem("token");
   const [currentStep, setCurrentStep] = useState(0);
   const speech = new SpeechSynthesisUtterance();
 
-  // ✅ Fetch Liked Recipes
   useEffect(() => {
-    if (token) {
-      fetchLikedRecipes(token).then((recipes) => setLikedRecipes(recipes));
-    }
-  }, [token]);
+    loadLikedRecipes();
+  }, []);
 
-  // ✅ Handle Unlike
+  const loadLikedRecipes = async () => {
+    try {
+      const response = await fetchLikedRecipes();
+      setRecipes(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching liked recipes:", err);
+      setError("Failed to load liked recipes");
+      setLoading(false);
+    }
+  };
+
   const handleUnlike = async (recipeId) => {
-    const success = await unlikeRecipe(token, recipeId);
-    if (success) {
-      setLikedRecipes((prevRecipes) =>
-        prevRecipes.filter((recipe) => recipe._id !== recipeId)
-      );
+    try {
+      await unlikeRecipe(recipeId);
+      setRecipes(prevRecipes => prevRecipes.filter(recipe => recipe._id !== recipeId));
+    } catch (err) {
+      console.error("Error unliking recipe:", err);
+      if (err.response?.status === 401) {
+        alert("Please login to unlike recipes");
+      }
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const message = `Hey! I found this amazing recipe:
-    🍲 *${selectedRecipe.title}* 🍲
-    Ingredients: ${selectedRecipe.ingredients}
-    Instructions: ${selectedRecipe.instructions}
-    `;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
-  };
-
-  // ✅ Handle View Details
   const handleViewDetails = (recipe) => {
     setSelectedRecipe(recipe);
     setCurrentStep(0);
   };
 
-  // ✅ Handle AI Read Step by Step
   const handleNextStep = () => {
-    if (
-      selectedRecipe &&
-      currentStep < selectedRecipe.instructions.split(".").length
-    ) {
-      const step = selectedRecipe.instructions.split(".")[currentStep];
-      speech.text = `Step ${currentStep + 1}: ${step}`;
-      window.speechSynthesis.speak(speech);
-      setCurrentStep(currentStep + 1);
+    if (selectedRecipe) {
+      const steps = selectedRecipe.instructions.split(/\r?\n/).filter(step => step.trim());
+      if (currentStep < steps.length) {
+        const step = steps[currentStep].trim();
+        if (step) {
+          const cleanStep = step.replace(/\*\*/g, '').replace(/–/g, '');
+          speech.text = cleanStep;
+          window.speechSynthesis.speak(speech);
+          speech.onend = () => {
+            setCurrentStep(currentStep + 1);
+          };
+        }
+      }
     }
   };
 
-  // ✅ Handle Repeat Step
   const handleRepeatStep = () => {
-    const step = selectedRecipe.instructions.split(".")[currentStep - 1];
-    speech.text = `Repeating Step ${currentStep}: ${step}`;
-    window.speechSynthesis.speak(speech);
+    if (selectedRecipe && currentStep > 0) {
+      const steps = selectedRecipe.instructions.split(/\r?\n/).filter(step => step.trim());
+      const step = steps[currentStep - 1].trim();
+      if (step) {
+        const cleanStep = step.replace(/\*\*/g, '').replace(/–/g, '');
+        speech.text = `Repeating: ${cleanStep}`;
+        window.speechSynthesis.speak(speech);
+      }
+    }
   };
 
-  // ✅ Handle Stop Reading
+  const handlePreviousStep = () => {
+    if (selectedRecipe && currentStep > 0) {
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      const steps = selectedRecipe.instructions.split(/\r?\n/).filter(step => step.trim());
+      const step = steps[newStep].trim();
+      if (step) {
+        const cleanStep = step.replace(/\*\*/g, '').replace(/–/g, '');
+        speech.text = cleanStep;
+        window.speechSynthesis.speak(speech);
+      }
+    }
+  };
+
   const handleStopReading = () => {
     window.speechSynthesis.cancel();
   };
 
-  return (
-    <div className="container">
-      <h2 className="text-center my-4 text-white">❤️ Your Liked Recipes :)</h2>
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+  if (recipes.length === 0) return <div className="text-center mt-4">No liked recipes yet!</div>;
 
+  return (
+    <div className="container mt-4">
       <div className="row">
-        {likedRecipes.map((recipe) => (
-          <div key={recipe._id} className="col-md-4 mb-3">
-            <div className="card small-card">
-              <img
-                src={`https://flavorshare.onrender.com${recipe.image}`}
-                alt={recipe.title}
-                className="card-img-top small-img"
-              />
+        {recipes.map((recipe) => (
+          <div key={recipe._id} className="col-md-4 mb-4">
+            <div className="card h-100">
+              {recipe.image && (
+                <img
+                  src={`${API_BASE_URL}${recipe.image}`}
+                  alt={recipe.title}
+                  className="card-img-top"
+                  style={{ height: "200px", objectFit: "cover" }}
+                />
+              )}
               <div className="card-body">
                 <h5 className="card-title">{recipe.title}</h5>
-
-                <button
-                  className="btn btn-danger"
-                  onClick={() => handleUnlike(recipe._id)}
-                >
-                  ❌ Unlike
-                </button>
-
-                <button
-                  className="btn btn-info"
-                  onClick={() => handleViewDetails(recipe)}
-                >
-                  📖 View Details
-                </button>
+                <div className="d-flex justify-content-center gap-2">
+                  <button
+                    className="btn btn-outline-danger"
+                    onClick={() => handleUnlike(recipe._id)}
+                  >
+                    Unlike
+                  </button>
+                  <button
+                    className="btn btn-outline-primary"
+                    onClick={() => handleViewDetails(recipe)}
+                  >
+                    View Details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ✅ Modal */}
       {selectedRecipe && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>{selectedRecipe.title}</h3>
-            <h5>Ingredients:</h5>
-            <ul>
-              {selectedRecipe.ingredients.split(",").map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-
-            <h5>Instructions:</h5>
-            <ol>
-              {selectedRecipe.instructions.split(".").map((step, index) => (
-                <li key={index}>{step}</li>
-              ))}
-            </ol>
-
-            {/* ✅ AI Buttons */}
-            <button className="btn btn-success" onClick={handleNextStep}>
-              ▶️ Next Step
-            </button>
-            <button className="btn btn-warning" onClick={handleRepeatStep}>
-              🔁 Repeat Step
-            </button>
-            <button className="btn btn-dark" onClick={handleStopReading}>
-              ⏹️ Stop Reading
-            </button>
-            {/* ✅ AI Help Section */}
-
-            {/* ✅ PDF Download */}
-            <RecipePDF recipe={selectedRecipe} />
-            <button className="btn btn-success" onClick={handleShareWhatsApp}>
-              📲 Share on WhatsApp
-            </button>
-
             <button
-              className="btn btn-danger"
-              onClick={() => setSelectedRecipe(null)}
+              className="btn btn-danger close-btn"
+              onClick={() => {
+                handleStopReading();
+                setSelectedRecipe(null);
+                setCurrentStep(0);
+              }}
             >
               ❌ Close
             </button>
+
+            <div className="recipe-details">
+              <h5>Ingredients:</h5>
+              <div className="ingredients-list">
+                {selectedRecipe.ingredients.split(',').map((ingredient, index) => (
+                  <div key={index} className="ingredient-item">
+                    {ingredient.trim()}
+                  </div>
+                ))}
+              </div>
+
+              <h5>Instructions:</h5>
+              <ol className="instructions-list">
+                {selectedRecipe.instructions.split(/\r?\n/)
+                  .filter(step => step.trim())
+                  .map((step, index) => (
+                    <li 
+                      key={index} 
+                      className={index === currentStep ? "current-step" : ""}
+                    >
+                      {step.trim().replace(/^\d+\.\s*/, '').replace(/\*\*/g, '')}
+                    </li>
+                  ))}
+              </ol>
+
+              <div className="control-buttons">
+                <button 
+                  className="btn btn-info" 
+                  onClick={handlePreviousStep}
+                  disabled={currentStep === 0}
+                >
+                  ⬅️ Previous Step
+                </button>
+                <button 
+                  className="btn btn-success" 
+                  onClick={handleNextStep}
+                  disabled={currentStep >= selectedRecipe.instructions.split(/\r?\n/).filter(step => step.trim()).length}
+                >
+                  ▶️ Next Step
+                </button>
+                <button 
+                  className="btn btn-warning" 
+                  onClick={handleRepeatStep}
+                  disabled={currentStep === 0}
+                >
+                  🔁 Repeat Step
+                </button>
+                <button className="btn btn-dark" onClick={handleStopReading}>
+                  ⏹️ Stop Reading
+                </button>
+              </div>
+
+              <div className="action-buttons">
+                <RecipePDF recipe={selectedRecipe} />
+                <button
+                  className="btn btn-outline-success"
+                  onClick={() => {
+                    const recipeText = `
+*${selectedRecipe.title}*
+
+*Ingredients:*
+${selectedRecipe.ingredients.split(',').map(i => '• ' + i.trim()).join('\n')}
+
+*Instructions:*
+${selectedRecipe.instructions.split('\n').map(step => {
+  const stepMatch = step.match(/^\d+\.\s*\*\*(.*?)\*\*\s*–\s*(.*)$/);
+  if (stepMatch) {
+    const [, title, description] = stepMatch;
+    return `${title} – ${description}`;
+  }
+  return step.trim().replace(/^\d+\.\s*/, '');
+}).filter(step => step).join('\n')}
+
+Shared via FlavorShare 🍳
+`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(recipeText)}`, "_blank");
+                  }}
+                >
+                  Share on WhatsApp 📱
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedRecipe(null)}
+                >
+                  Collapse
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

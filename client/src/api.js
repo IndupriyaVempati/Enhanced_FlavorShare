@@ -1,66 +1,97 @@
 import axios from "axios";
 
-// Create an axios instance with the base URL for the API
-// const API = axios.create({ baseURL: "http://localhost:5000" });
-const API = axios.create({ baseURL: "https://flavorshare.onrender.com" });
-export const uploadRecipe = (data) => {
-  console.log("API: Uploading recipe with data:", data);
-  return API.post("/recipes", data)
-    .then((response) => response.data)
-    .catch((error) => {
-      console.error("API: Error uploading recipe", error);
-      throw error;
-    });
-};
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-export const likeRecipe = async (recipeId, token) => {
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add request interceptor to handle auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = token;
+    }
+    
+    // If sending FormData, let axios set the correct Content-Type
+    if (config.data instanceof FormData) {
+      config.headers["Content-Type"] = undefined;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized error
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.setItem("isAuthenticated", "false");
+      window.location.href = "/login";
+    } else if (error.response?.status === 403) {
+      // Handle forbidden error
+      alert("Please log in to perform this action");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Recipe API functions
+export const fetchRecipes = async () => {
   try {
-    await API.post(
-      `/api/like-recipe/${recipeId}`,
-      {},
-      {
-        headers: { Authorization: token },
-      }
-    );
+    const response = await api.get("/recipes");
+    return {
+      data: response.data.map(recipe => ({
+        ...recipe,
+        isLiked: recipe.likedBy?.includes(localStorage.getItem("userId"))
+      }))
+    };
   } catch (error) {
-    console.error("Error liking recipe:", error);
+    console.error("Error fetching recipes:", error);
+    throw error;
   }
 };
 
-export const unlikeRecipe = async (recipeId, token) => {
+export const likeRecipe = async (recipeId) => {
   try {
-    const response = await API.delete(
-      `/api/unlike-recipe/${recipeId}`, // Ensure backend supports DELETE for unliking
-      { headers: { Authorization: token } }
-    );
-    return response.data;
+    const response = await api.post(`/api/like-recipe/${recipeId}`);
+    return response;
+  } catch (error) {
+    console.error("Error liking recipe:", error);
+    throw error;
+  }
+};
+
+export const unlikeRecipe = async (recipeId) => {
+  try {
+    const response = await api.post(`/api/unlike-recipe/${recipeId}`);
+    return response;
   } catch (error) {
     console.error("Error unliking recipe:", error);
     throw error;
   }
 };
 
-export const fetchLikedRecipes = async (token) => {
-  try {
-    const response = await API.get("/api/liked-recipes", {
-      headers: { Authorization: token },
-    });
-    return response.data || []; // Ensure only liked recipes are returned
-  } catch (error) {
-    console.error("Error fetching liked recipes:", error);
-    return [];
-  }
+export const fetchLikedRecipes = () => api.get("/api/liked-recipes");
+export const uploadRecipe = (formData) => {
+  return api.post("/recipes", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 };
 
-export const fetchRecipes = () => {
-  console.log("API: Fetching all recipes");
-  return API.get("/recipes")
-    .then((response) => {
-      console.log("API: Recipes fetched successfully:", response.data);
-      return response.data;
-    })
-    .catch((error) => {
-      console.error("API: Error fetching all recipes:", error);
-      throw error;
-    });
-};
+export default api;

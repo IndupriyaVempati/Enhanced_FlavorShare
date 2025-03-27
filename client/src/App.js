@@ -1,13 +1,8 @@
 import React from "react";
-import Home from "./components/Home"; // Just render the Home component
-import Chatbot from "./components/Chatbot"
+import Home from "./components/Home";
 
 const App = () => {
-  return(
-  <>
-    <Home />
-    <Chatbot />
-  </>);
+  return <Home />;
 };
 
 export default App;

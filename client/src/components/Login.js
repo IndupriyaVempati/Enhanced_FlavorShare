@@ -1,33 +1,55 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useNavigate } from "react-router-dom"; // Using React Router for navigation
+import { useNavigate, Link } from "react-router-dom"; // Using React Router for navigation
+
+const API_BASE_URL = "http://localhost:5000";
 
 const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate(); // Hook to navigate programmatically
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
     try {
       const response = await axios.post(
-        "https://flavorshare.onrender.com/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         {
           email,
           password,
         }
       );
-      localStorage.setItem("token", response.data.token); // Save the token in localStorage
-      localStorage.setItem("isAuthenticated", "true"); // Set authentication status
-      setIsAuthenticated(true); // Update the parent state
-      alert("Login successful!");
-      // Redirect to dashboard or explore page
-      navigate("/dashboard"); // Using React Router for navigation
+
+      const { token, userId } = response.data;
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("isAuthenticated", "true");
+      setIsAuthenticated(true);
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
-      console.error("Login error:", err.response);
+      console.error("Login error:", err);
+      if (err.response) {
+        switch (err.response.status) {
+          case 401:
+            setError("Invalid email or password");
+            break;
+          case 404:
+            setError("Email not found. Please register first.");
+            break;
+          default:
+            setError("Failed to login. Please try again.");
+        }
+      } else {
+        setError("Network error. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,48 +57,50 @@ const Login = ({ setIsAuthenticated }) => {
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6">
-          <div className="card shadow">
-            <div className="card-body">
-              <h2 className="card-title text-center mb-4">Login</h2>
-              <form onSubmit={handleLogin}>
-                <div className="form-group mb-3">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+          <div className="card p-4 shadow">
+            <h2 className="text-center mb-4">🔐 Login</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label">📧 Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">🔑 Password</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primary w-100"
+                style={{ backgroundColor: "#ff4500", borderColor: "#ff4500" }}
+              >
+                Login
+              </button>
+              {error && (
+                <div className="alert alert-danger text-center mt-3">
+                  {error}
                 </div>
-                <div className="form-group mb-3">
-                  <label htmlFor="password">Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="btn w-100"
-                  style={{
-                    backgroundColor: "#ff4500",
-                    borderColor: "#ff4500",
-                    color: "white",
-                  }}
-                >
-                  Login
-                </button>
-              </form>
-              {error && <p className="text-danger text-center mt-3">{error}</p>}
-            </div>
+              )}
+              <div className="text-center mt-3">
+                <p>
+                  Don't have an account?{" "}
+                  <Link to="/register" className="text-decoration-none" style={{ color: "#ff4500" }}>
+                    Register here
+                  </Link>
+                </p>
+              </div>
+            </form>
           </div>
         </div>
       </div>

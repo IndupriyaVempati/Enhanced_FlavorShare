@@ -1,185 +1,195 @@
-import React, { useEffect, useState } from "react";
-import {
-  fetchRecipes,
-  likeRecipe,
-  unlikeRecipe,
-  fetchLikedRecipes,
-} from "../api";
+import React, { useState, useEffect } from "react";
+import { fetchRecipes, likeRecipe, unlikeRecipe } from "../api";
 import "./RecipeList.css";
 
-const RecipeList = ({ updateLikedRecipes }) => {
+const API_BASE_URL = "http://localhost:5000";
+
+const RecipeList = () => {
   const [recipes, setRecipes] = useState([]);
-  const [likedRecipes, setLikedRecipes] = useState(new Set());
-  const [expandedCard, setExpandedCard] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(""); // ✅ Added search term
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Fetch Recipes and Liked Recipes
   useEffect(() => {
-    fetchRecipes()
-      .then((res) => setRecipes(res))
-      .catch((err) => console.error(err));
-
-    const token = localStorage.getItem("token");
-    fetchLikedRecipes(token)
-      .then((liked) => setLikedRecipes(new Set(liked.map((r) => r._id))))
-      .catch((err) => console.error("Error fetching liked recipes:", err));
+    loadRecipes();
   }, []);
 
-  // ✅ Handle Like
-  const handleLike = async (recipeId) => {
-    const token = localStorage.getItem("token");
-
+  const loadRecipes = async () => {
     try {
-      await likeRecipe(recipeId, token);
-      alert("✅ Recipe liked!");
+      const response = await fetchRecipes();
+      setRecipes(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching recipes:", err);
+      setError("Failed to load recipes");
+      setLoading(false);
+    }
+  };
 
-      setLikedRecipes((prev) => new Set(prev).add(recipeId));
-
-      if (updateLikedRecipes) updateLikedRecipes();
+  const handleLike = async (recipeId) => {
+    try {
+      await likeRecipe(recipeId);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe._id === recipeId
+            ? { ...recipe, isLiked: true }
+            : recipe
+        )
+      );
     } catch (err) {
       console.error("Error liking recipe:", err);
+      if (err.response?.status === 401) {
+        alert("Please login to like recipes");
+      }
     }
   };
 
-  // ✅ Handle Unlike
   const handleUnlike = async (recipeId) => {
-    const token = localStorage.getItem("token");
-
     try {
-      await unlikeRecipe(recipeId, token);
-      alert("❌ Recipe unliked!");
-
-      setLikedRecipes((prev) => {
-        const updated = new Set(prev);
-        updated.delete(recipeId);
-        return updated;
-      });
-
-      if (updateLikedRecipes) updateLikedRecipes();
+      await unlikeRecipe(recipeId);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe._id === recipeId
+            ? { ...recipe, isLiked: false }
+            : recipe
+        )
+      );
     } catch (err) {
       console.error("Error unliking recipe:", err);
+      if (err.response?.status === 401) {
+        alert("Please login to unlike recipes");
+      }
     }
   };
 
-  // ✅ Handle Expand/Collapse
-  const handleExpand = (id) => {
-    setExpandedCard(expandedCard === id ? null : id);
-  };
+  // Filter recipes based on search term
+  const filteredRecipes = recipes.filter(recipe =>
+    recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // ✅ FILTER Recipes based on Search
-  const filteredRecipes = recipes.filter((recipe) => {
-    const lowerSearch = searchTerm.toLowerCase();
-    return recipe.title.toLowerCase().includes(lowerSearch);
-  });
-
-  // WhatsApp Share Function
-  const handleWhatsAppShare = (recipe) => {
-    const text = `Check out this recipe: ${recipe.title}\n\nIngredients: ${recipe.ingredients}\n\nInstructions: ${recipe.instructions}`;
-    const encodedText = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-  };
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+  if (recipes.length === 0) return <div className="text-center mt-4">No recipes found!</div>;
 
   return (
-    <div className="container">
-      {/* ✅ Heading with Search Bar */}
-      <div className="d-flex justify-content-between align-items-center my-4">
-        <h2 className="text-center text-white">🌍 World of RECIPES!</h2>
-
-        {/* ✅ Search Bar */}
+    <div className="container mt-4">
+      <div className="search-container mb-4">
         <input
           type="text"
-          className="form-control w-50"
+          className="form-control search-input"
           placeholder="🔍 Search recipes by title..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* ✅ Display Recipes */}
       <div className="row">
-        {filteredRecipes.length > 0 ? (
-          filteredRecipes.map((recipe) => (
-            <div key={recipe._id} className="col-md-4 mb-4">
-              <div className={`card h-100 shadow-sm rounded-3 ${expandedCard === recipe._id ? 'expanded' : ''}`}>
-                {/* ✅ SMALLER IMAGE SIZE */}
-                {recipe.image && (
-                  <img
-                    src={`https://flavorshare.onrender.com${recipe.image}`}
-                    alt={recipe.title}
-                    className="card-img-top"
-                    style={{
-                      height: expandedCard === recipe._id ? "250px" : "180px",
-                      objectFit: "cover",
-                      borderRadius: "10px",
-                      transition: "height 0.3s ease"
-                    }}
-                  />
-                )}
-
-                {/* ✅ CARD BODY */}
-                <div className="card-body text-center">
-                  <h5 className="card-title fw-bold">{recipe.title}</h5>
-
-                  {/* ✅ Read More / Collapse */}
-                  {expandedCard === recipe._id ? (
-                    <div className="expanded-content">
-                      <p>
-                        <strong>Ingredients:</strong> {recipe.ingredients}
-                      </p>
-                      <p>
-                        <strong>Instructions:</strong> {recipe.instructions}
-                      </p>
-                      <div className="d-flex justify-content-center gap-2">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleExpand(recipe._id)}
-                        >
-                          📕 Collapse
-                        </button>
-                        <button
-                          className="whatsapp-share btn-sm"
-                          onClick={() => handleWhatsAppShare(recipe)}
-                        >
-                          📱 Share
-                        </button>
-                      </div>
-                    </div>
+        {filteredRecipes.map((recipe) => (
+          <div key={recipe._id} className="col-md-4 mb-4">
+            <div className="card h-100">
+              {recipe.image && (
+                <img
+                  src={`${API_BASE_URL}${recipe.image}`}
+                  alt={recipe.title}
+                  className="card-img-top"
+                  style={{ height: "200px", objectFit: "cover" }}
+                />
+              )}
+              <div className="card-body">
+                <h5 className="card-title">{recipe.title}</h5>
+                <div className="d-flex justify-content-center gap-2">
+                  {recipe.isLiked ? (
+                    <button
+                      className="btn btn-outline-danger"
+                      onClick={() => handleUnlike(recipe._id)}
+                    >
+                      Unlike
+                    </button>
                   ) : (
                     <button
-                      className="btn btn-outline-info btn-sm"
-                      onClick={() => handleExpand(recipe._id)}
+                      className="btn btn-outline-primary"
+                      onClick={() => handleLike(recipe._id)}
                     >
-                      📖 Read More
+                      Like
                     </button>
                   )}
-
-                  {/* ✅ Like / Unlike Button */}
-                  <div className="mt-3">
-                    {likedRecipes.has(recipe._id) ? (
-                      <button
-                        onClick={() => handleUnlike(recipe._id)}
-                        className="btn btn-danger btn-sm mx-1"
-                      >
-                        ❤️ Unlike
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleLike(recipe._id)}
-                        className="btn btn-primary btn-sm mx-1"
-                      >
-                        💖 Like
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    className="btn btn-outline-primary"
+                    onClick={() => setSelectedRecipe(recipe)}
+                  >
+                    Read More
+                  </button>
                 </div>
               </div>
             </div>
-          ))
-        ) : (
-          <h5 className="text-center mt-4">😞 No Recipes Found...</h5>
-        )}
+          </div>
+        ))}
       </div>
+
+      {selectedRecipe && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>{selectedRecipe.title}</h3>
+            <button
+              className="btn btn-danger close-btn"
+              onClick={() => setSelectedRecipe(null)}
+            >
+              ❌ Close
+            </button>
+
+            <div className="recipe-details">
+              <h5>Ingredients:</h5>
+              <div className="ingredients-list">
+                {selectedRecipe.ingredients.split(',').map((ingredient, index) => (
+                  <div key={index} className="ingredient-item">
+                    {ingredient.trim()}
+                  </div>
+                ))}
+              </div>
+
+              <h5>Instructions:</h5>
+              <ol className="instructions-list">
+                {selectedRecipe.instructions
+                  .split(/\r?\n/)
+                  .filter(step => step.trim())
+                  .map((step, index) => {
+                    // Extract the step content, removing the step number and formatting
+                    const stepMatch = step.match(/^\d+\.\s*\*\*(.*?)\*\*\s*–\s*(.*)$/);
+                    if (stepMatch) {
+                      const [, title, description] = stepMatch;
+                      return (
+                        <li key={index}>
+                          <strong>{title}</strong> – {description}
+                        </li>
+                      );
+                    } else {
+                      // Handle simple instructions without formatting
+                      const cleanStep = step.trim().replace(/^\d+\.\s*/, '');
+                      return cleanStep ? (
+                        <li key={index}>{cleanStep}</li>
+                      ) : null;
+                    }
+                  })
+                  .filter(Boolean)}
+              </ol>
+
+              <div className="recipe-note">
+                <p>💡 Like this recipe? Add it to your favorites to enhance your collection!</p>
+              </div>
+
+              <div className="action-buttons">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedRecipe(null)}
+                >
+                  Collapse
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { uploadRecipe } from "../api";
-import "./UploadRecipe.css";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import "./Dashboard.css";
 
 const UploadRecipe = () => {
   const [title, setTitle] = useState("");
@@ -8,14 +9,17 @@ const UploadRecipe = () => {
   const [instructions, setInstructions] = useState("");
   const [image, setImage] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    // ✅ Check if any field is empty
     if (!title || !ingredients || !instructions || !image) {
-      setError("⚠️ All fields are mandatory!");
+      setError("All fields are required");
+      setLoading(false);
       return;
     }
 
@@ -26,71 +30,80 @@ const UploadRecipe = () => {
     formData.append("image", image);
 
     try {
-      const token = localStorage.getItem("token");
-      await uploadRecipe(formData, token);
-      alert("✅ Recipe uploaded successfully!");
-      setTitle("");
-      setIngredients("");
-      setInstructions("");
-      setImage(null);
+      await axios.post("http://localhost:5000/recipes", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      navigate("/dashboard/explore");
     } catch (err) {
       console.error("Error uploading recipe:", err);
-      setError("❌ Failed to upload recipe. Please try again.");
+      setError(err.response?.data?.error || "Failed to upload recipe");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="upload-container">
-      <h2 className="text-center my-4">🍲 Upload Your Recipe</h2>
-      {error && <p className="error-message">{error}</p>}
+    <div className="upload-form">
+      <h2 className="text-center mb-4">🍳 Upload Your Recipe</h2>
+      
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="upload-form">
-        {/* ✅ Title Field */}
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>🍛 Recipe Title</label>
+          <label className="form-label">Recipe Title</label>
           <input
             type="text"
-            placeholder="Enter Recipe Title"
+            className="form-control"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter Recipe Title"
           />
         </div>
 
-        {/* ✅ Ingredients Field */}
         <div className="form-group">
-          <label>📝 Ingredients</label>
+          <label className="form-label">Ingredients</label>
           <textarea
-            rows="3"
-            placeholder="List ingredients separated by commas"
+            className="form-control"
             value={ingredients}
             onChange={(e) => setIngredients(e.target.value)}
+            placeholder="List ingredients separated by commas"
+            rows="4"
           />
         </div>
 
-        {/* ✅ Instructions Field */}
         <div className="form-group">
-          <label>📖 Instructions</label>
+          <label className="form-label">Instructions</label>
           <textarea
-            rows="4"
-            placeholder="Write step-by-step instructions"
+            className="form-control"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
+            placeholder="Write step-by-step instructions"
+            rows="6"
           />
         </div>
 
-        {/* ✅ Image Upload */}
         <div className="form-group">
-          <label>📸 Upload Recipe Image</label>
+          <label className="form-label">Upload Recipe Image</label>
           <input
             type="file"
+            className="form-control"
             accept="image/*"
             onChange={(e) => setImage(e.target.files[0])}
           />
         </div>
 
-        {/* ✅ Submit Button */}
-        <button type="submit" className="upload-btn">
-          🚀 Upload Recipe
+        <button 
+          type="submit" 
+          className="upload-btn"
+          disabled={loading}
+        >
+          {loading ? "Uploading..." : "Upload Recipe"}
         </button>
       </form>
     </div>
