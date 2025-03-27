@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: flavorshare
+    name: flavorshare-backend
     env: node
-    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
+    buildCommand: cd server && npm install
     startCommand: cd server && node server.js
     envVars:
       - key: NODE_ENV
@@ -11,7 +11,18 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: CLIENT_URL
+        value: https://flavorshare-frontend.onrender.com
     disk:
       name: uploads
       mountPath: /opt/render/project/src/server/uploads
-      sizeGB: 1 
+      sizeGB: 1
+
+  - type: web
+    name: flavorshare-frontend
+    env: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://flavorshare-backend.onrender.com 
