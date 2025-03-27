@@ -92,7 +92,7 @@ const RecipeList = () => {
             <div className="card h-100">
               {recipe.image && (
                 <img
-                  src={recipe.image.startsWith('http') ? recipe.image : `${API_BASE_URL}${recipe.image}`}
+                  src={recipe.image.startsWith('http') ? recipe.image : `${API_BASE_URL}/uploads/${recipe.image.split('/uploads/').pop()}`}
                   alt={recipe.title}
                   className="card-img-top"
                   style={{ height: "200px", objectFit: "cover" }}
