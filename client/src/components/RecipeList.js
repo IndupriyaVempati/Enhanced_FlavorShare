@@ -20,6 +20,7 @@ const RecipeList = () => {
   const loadRecipes = async () => {
     try {
       const response = await fetchRecipes();
+      console.log("Loaded recipes:", response.data);
       setRecipes(response.data);
       setLoading(false);
     } catch (err) {
@@ -92,10 +93,15 @@ const RecipeList = () => {
             <div className="card h-100">
               {recipe.image && (
                 <img
-                  src={`${API_BASE_URL}${recipe.image}`}
+                  src={recipe.image}
                   alt={recipe.title}
                   className="card-img-top"
                   style={{ height: "200px", objectFit: "cover" }}
+                  onError={(e) => {
+                    console.error(`Failed to load image: ${recipe.image}`);
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/200x200?text=Image+Not+Found';
+                  }}
                 />
               )}
               <div className="card-body">
