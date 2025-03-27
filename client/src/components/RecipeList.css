@@ -1,0 +1,109 @@
+/* RecipeList.css */
+.card {
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.card.expanded {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.expanded-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+
+  .row {
+    margin: 0;
+  }
+
+  .col-md-4 {
+    padding: 0 10px;
+  }
+
+  .card {
+    margin-bottom: 15px;
+  }
+
+  .card-img-top {
+    height: 200px !important;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .card-body {
+    padding: 15px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  /* Search bar responsiveness */
+  .d-flex {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .w-50 {
+    width: 100% !important;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* WhatsApp Share Button */
+.whatsapp-share {
+  background-color: #25D366;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.whatsapp-share:hover {
+  background-color: #128C7E;
+  color: white;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Error State */
+.error-message {
+  color: #dc3545;
+  text-align: center;
+  padding: 20px;
+  background-color: #f8d7da;
+  border-radius: 5px;
+  margin: 20px 0;
+}

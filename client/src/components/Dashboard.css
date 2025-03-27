@@ -1,0 +1,124 @@
+/* General Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  body {
+    background-color: #f8f9fa;
+  }
+  
+  /* Dashboard Container */
+  .dashboard-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+  }
+  
+  /* Header Styling */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #926b61, #ffffff);
+    color: rgb(0, 0, 0);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .header-left .greeting {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .header-right h2 {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+  }
+  
+  .header-right p {
+    font-size: 1rem;
+    font-weight: 300;
+  }
+  
+  /* Dashboard Main Section */
+  .dashboard-main {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 30px;
+    gap: 20px;
+  }
+  
+  /* Dashboard Cards */
+  .card {
+    flex: 1;
+    min-width: 250px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    color: black;
+    transition: 0.3s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+  }
+  
+  .card p {
+    font-size: 1rem;
+    color: #555;
+  }
+  
+  /* Adding a hover effect */
+  .card::after {
+    content: "";
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #a02000, #feb47b);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+  
+  /* Outlet Content */
+  /* .outlet-content {
+    margin-top: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  } */
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .header {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .dashboard-main {
+      flex-direction: column;
+      align-items: center;
+    }
+  
+    .card {
+      width: 100%;
+    }
+  }
+  
