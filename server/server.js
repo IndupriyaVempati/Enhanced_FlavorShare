@@ -21,7 +21,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:3000', process.env.CLIENT_URL],
+  origin: ['http://localhost:3000', 'https://flavoshare1.onrender.com'],
   credentials: true
 }));
 
@@ -194,8 +194,8 @@ app.post("/recipes", upload.single("image"), async (req, res) => {
     }
 
     const imagePath = `/uploads/${req.file.filename}`;
-    console.log("Image path:", imagePath);
-    console.log("Full image path:", path.join(__dirname, imagePath));
+    const fullImageUrl = `https://flavoshare.onrender.com${imagePath}`;
+    console.log("Image path:", fullImageUrl);
 
     // Process instructions to preserve numbered steps
     const processedInstructions = instructions
@@ -216,7 +216,7 @@ app.post("/recipes", upload.single("image"), async (req, res) => {
 
     res.status(201).json({
       ...savedRecipe.toObject(),
-      image: imagePath
+      image: fullImageUrl
     });
   } catch (error) {
     console.error("Error saving recipe:", error);
@@ -248,7 +248,8 @@ app.get("/recipes", async (req, res) => {
 
     const recipesWithLikeStatus = recipes.map(recipe => ({
       ...recipe.toObject(),
-      isLiked: userId ? recipe.likedBy.includes(userId) : false
+      isLiked: userId ? recipe.likedBy.includes(userId) : false,
+      image: recipe.image.startsWith('http') ? recipe.image : `https://flavoshare.onrender.com${recipe.image}`
     }));
 
     res.status(200).json(recipesWithLikeStatus);
@@ -354,18 +355,25 @@ app.post(
     try {
       const userId = req.userId;
       const { name, age } = req.body;
-      const profileImg = req.file ? `/uploads/${req.file.filename}` : null;
+      const profileImgPath = req.file ? `/uploads/${req.file.filename}` : null;
+      const fullProfileImgUrl = profileImgPath ? `https://flavoshare.onrender.com${profileImgPath}` : null;
 
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // ✅ Update Fields
+      // Update Fields
       user.name = name || user.name;
       user.age = age || user.age;
-      if (profileImg) user.profileImg = profileImg;
+      if (fullProfileImgUrl) user.profileImg = fullProfileImgUrl;
 
       await user.save();
-      res.status(200).json({ message: "Profile updated successfully", user });
+      res.status(200).json({ 
+        message: "Profile updated successfully", 
+        user: {
+          ...user.toObject(),
+          profileImg: user.profileImg
+        } 
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to update profile" });
     }
