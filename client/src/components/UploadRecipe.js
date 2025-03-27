@@ -17,14 +17,6 @@ const UploadRecipe = () => {
     setError("");
     setLoading(true);
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Please login to upload a recipe");
-      setLoading(false);
-      navigate("/login");
-      return;
-    }
-
     if (!title || !ingredients || !instructions || !image) {
       setError("All fields are required");
       setLoading(false);

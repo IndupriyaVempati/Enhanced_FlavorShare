@@ -20,7 +20,6 @@ const RecipeList = () => {
   const loadRecipes = async () => {
     try {
       const response = await fetchRecipes();
-      console.log("Loaded recipes:", response.data);
       setRecipes(response.data);
       setLoading(false);
     } catch (err) {
@@ -98,7 +97,6 @@ const RecipeList = () => {
                   className="card-img-top"
                   style={{ height: "200px", objectFit: "cover" }}
                   onError={(e) => {
-                    console.error(`Failed to load image: ${recipe.image}`);
                     e.target.onerror = null;
                     e.target.src = 'https://via.placeholder.com/200x200?text=Image+Not+Found';
                   }}
