@@ -14,11 +14,11 @@ const RecipeList = () => {
     const loadData = async () => {
       try {
         const response = await fetchRecipes();
-        setRecipes(response);
+        setRecipes(response.data);
         
         const token = localStorage.getItem("token");
-        const liked = await fetchLikedRecipes(token);
-        setLikedRecipes(new Set(liked.map(r => r._id)));
+        const likedResponse = await fetchLikedRecipes();
+        setLikedRecipes(new Set(likedResponse.data.map(r => r._id)));
         
         setLoading(false);
       } catch (err) {
@@ -33,8 +33,12 @@ const RecipeList = () => {
 
   const handleLike = async (recipeId) => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login to like recipes");
+      return;
+    }
     try {
-      await likeRecipe(recipeId, token);
+      await likeRecipe(recipeId);
       setLikedRecipes(prev => new Set(prev).add(recipeId));
     } catch (err) {
       console.error("Error liking recipe:", err);
@@ -46,8 +50,12 @@ const RecipeList = () => {
 
   const handleUnlike = async (recipeId) => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login to unlike recipes");
+      return;
+    }
     try {
-      await unlikeRecipe(recipeId, token);
+      await unlikeRecipe(recipeId);
       setLikedRecipes(prev => {
         const updated = new Set(prev);
         updated.delete(recipeId);
