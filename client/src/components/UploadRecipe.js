@@ -30,6 +30,7 @@ const UploadRecipe = () => {
     formData.append("image", image);
 
     try {
+      const token = localStorage.getItem("token");
       await axios.post(`${process.env.REACT_APP_API_URL}/recipes`, formData, {
         headers: {
           Authorization: token,
