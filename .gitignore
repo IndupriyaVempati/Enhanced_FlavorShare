@@ -39,6 +39,4 @@ Thumbs.db
 # Build files
 /client/build
 
-# Uploads
-/server/uploads/*
-!/server/uploads/.gitkeep
+
