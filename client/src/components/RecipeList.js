@@ -1,44 +1,41 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import { fetchRecipes, likeRecipe, unlikeRecipe } from "../api";
+import { fetchRecipes, likeRecipe, unlikeRecipe, fetchLikedRecipes } from "../api";
 import "./RecipeList.css";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const RecipeList = () => {
   const [recipes, setRecipes] = useState([]);
+  const [likedRecipes, setLikedRecipes] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    loadRecipes();
+    const loadData = async () => {
+      try {
+        const response = await fetchRecipes();
+        setRecipes(response);
+        
+        const token = localStorage.getItem("token");
+        const liked = await fetchLikedRecipes(token);
+        setLikedRecipes(new Set(liked.map(r => r._id)));
+        
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load recipes");
+        setLoading(false);
+      }
+    };
+    
+    loadData();
   }, []);
 
-  const loadRecipes = async () => {
-    try {
-      const response = await fetchRecipes();
-      setRecipes(response.data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching recipes:", err);
-      setError("Failed to load recipes");
-      setLoading(false);
-    }
-  };
-
   const handleLike = async (recipeId) => {
+    const token = localStorage.getItem("token");
     try {
-      await likeRecipe(recipeId);
-      setRecipes(prevRecipes =>
-        prevRecipes.map(recipe =>
-          recipe._id === recipeId
-            ? { ...recipe, isLiked: true }
-            : recipe
-        )
-      );
+      await likeRecipe(recipeId, token);
+      setLikedRecipes(prev => new Set(prev).add(recipeId));
     } catch (err) {
       console.error("Error liking recipe:", err);
       if (err.response?.status === 401) {
@@ -48,15 +45,14 @@ const RecipeList = () => {
   };
 
   const handleUnlike = async (recipeId) => {
+    const token = localStorage.getItem("token");
     try {
-      await unlikeRecipe(recipeId);
-      setRecipes(prevRecipes =>
-        prevRecipes.map(recipe =>
-          recipe._id === recipeId
-            ? { ...recipe, isLiked: false }
-            : recipe
-        )
-      );
+      await unlikeRecipe(recipeId, token);
+      setLikedRecipes(prev => {
+        const updated = new Set(prev);
+        updated.delete(recipeId);
+        return updated;
+      });
     } catch (err) {
       console.error("Error unliking recipe:", err);
       if (err.response?.status === 401) {
@@ -98,14 +94,14 @@ const RecipeList = () => {
                   style={{ height: "200px", objectFit: "cover" }}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/200x200?text=Image+Not+Found';
+                    e.target.src = 'https://placehold.co/200x200/lightgray/gray?text=No+Image';
                   }}
                 />
               )}
               <div className="card-body">
                 <h5 className="card-title">{recipe.title}</h5>
                 <div className="d-flex justify-content-center gap-2">
-                  {recipe.isLiked ? (
+                  {likedRecipes.has(recipe._id) ? (
                     <button
                       className="btn btn-outline-danger"
                       onClick={() => handleUnlike(recipe._id)}
