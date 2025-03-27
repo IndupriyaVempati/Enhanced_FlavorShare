@@ -92,7 +92,7 @@ const RecipeList = () => {
             <div className="card h-100">
               {recipe.image && (
                 <img
-                  src={recipe.image}
+                  src={`https://flavoshare.onrender.com${recipe.image}`}
                   alt={recipe.title}
                   className="card-img-top"
                   style={{ height: "200px", objectFit: "cover" }}
